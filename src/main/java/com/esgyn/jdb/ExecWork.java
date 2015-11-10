@@ -3,8 +3,6 @@ package com.esgyn.jdb;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 import java.util.Random;
@@ -12,11 +10,10 @@ import java.util.Random;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.esgyn.util.ConnectionPool;
 import com.zaxxer.hikari.HikariDataSource;
 
 public class ExecWork implements Runnable {
-	private Logger log = LoggerFactory.getLogger(ExecWork.class);
+	private static final Logger log = LoggerFactory.getLogger(ExecWork.class);
 	private HikariDataSource pool;
 	private List<List> rows;
 	private String sql;
@@ -95,14 +92,4 @@ public class ExecWork implements Runnable {
 		}
 	}
 
-	public static List<Connection> getConns() {
-		return conns;
-	}
-
-	public static void count(int size) {
-		synchronized (ExecWork.class) {
-			cnt += size;
-			System.out.println(cnt + " rows has been inserted!");
-		}
-	}
 }
