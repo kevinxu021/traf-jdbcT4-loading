@@ -44,9 +44,9 @@ public class Loading {
 			try {
 				Object rs = futures.get(i).get();
 				if (!rs.equals(0))
-					System.out.println(srcs[i] + " -> " + tgzs[i] + " done with error! " + (i + 1) + "/" + futures.size());
+					log.info(srcs[i] + " -> " + tgzs[i] + " done with error! " + (i + 1) + "/" + futures.size());
 				else
-					System.out.println(srcs[i] + " -> " + tgzs[i] + " done! " + (i + 1) + "/" + futures.size());
+					log.info(srcs[i] + " -> " + tgzs[i] + " done! " + (i + 1) + "/" + futures.size());
 			} catch (Exception e) {
 				System.out.println("Error while loading table from " + srcs[i] + " to " + tgzs[i] + ".");
 				e.printStackTrace();

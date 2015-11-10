@@ -31,6 +31,9 @@ public class SingleTable implements Callable {
 	private HikariDataSource tgzpool;
 	private Properties conf;
 	private Map<String, String> colMap = new HashMap<String, String>();
+	private int threads;
+	private int cacheRows;
+	private long cacheSleep;
 
 	public SingleTable(String srcTable, String tgzTable, Properties conf) throws Exception {
 		this.src = srcTable;
@@ -52,10 +55,13 @@ public class SingleTable implements Callable {
 			this.src = src.replaceFirst("(.*)\\(.*\\).*", "$1").trim();
 			this.tgz = tgz.replaceFirst("(.*)\\(.*\\).*", "$1").trim();
 		}
-		tp = Executors.newFixedThreadPool(Integer.parseInt(conf.getProperty("tgz_threads", "5")));
+		threads = Integer.parseInt(conf.getProperty("tgz_threads", "5"));
+		tp = Executors.newFixedThreadPool(threads);
 		pool = ConnectionPool.getSrcPool(conf);
 		tgzpool = ConnectionPool.getTgzPool(conf);
 		batchSize = Integer.parseInt(conf.getProperty("tgz_batch_size", "1000"));
+		cacheRows = Integer.parseInt(conf.getProperty("cache_rows", "100000"));
+		cacheSleep = Long.parseLong(conf.getProperty("cache_exceed_sleep_ms", "10000"));
 		this.conf = conf;
 	}
 
@@ -66,6 +72,7 @@ public class SingleTable implements Callable {
 		Connection conn = null;
 		int total = 0;
 		try {
+
 			String sql = "select * from " + this.src;
 			conn = pool.getConnection();
 			Statement st = conn.createStatement();
@@ -89,27 +96,28 @@ public class SingleTable implements Callable {
 				qm += "?";
 			}
 			String insertSql = "upsert using load into " + this.tgz + "(" + cols + ") values(" + qm + ")";
-			System.out.println("insertion sql " + insertSql);
+			log.info("insertion sql " + insertSql);
+			// start up number of threads waiting for execute
+			DataHolder.setDone(false);
+			for (int i = 0; i < this.threads; i++) {
+				tp.execute(new ExecWork(conf, tgzpool, insertSql));
+			}
 
-			List<List> rows = null;
-			int n = 0;
 			List row = null;
 			while (rs.next()) {
 				try {
-					if (n == 0) {
-						rows = new ArrayList<List>(this.batchSize);
-					}
 					row = new ArrayList();
 					for (int i = 0; i < md.getColumnCount(); i++) {
 						row.add(rs.getObject(i + 1));
 					}
-					rows.add(row);
-					if (n++ >= this.batchSize) {
-						total += this.batchSize;
-						n = 0;
-						tp.execute(new ExecWork(conf, tgzpool, insertSql, rows));
-						if (total % 100000 == 0) {
-							Thread.sleep(5000);
+					DataHolder.push(row);
+					DataHolder.getCountDownLatch().countDown();
+					if (DataHolder.size() > this.cacheRows) {
+						try {
+							log.info("Waiting for consuming data[" + DataHolder.size() + "]!");
+							Thread.sleep(this.cacheSleep);
+						} catch (Exception e) {
+							log.warn(e.getMessage());
 						}
 					}
 				} catch (Exception e) {
@@ -117,18 +125,15 @@ public class SingleTable implements Callable {
 					e.printStackTrace();
 				}
 			}
-			if (n > 0) {
-				total += n;
-				n = 0;
-				tp.execute(new ExecWork(this.conf, tgzpool, insertSql, rows));
-			}
+			DataHolder.setDone(true);
 			System.out.println(this.src + " " + total + " rows has been selected totally!");
 
 		} catch (Exception e) {
 			throw e;
 		} finally {
 			tp.shutdown();
-			tp.awaitTermination(100, TimeUnit.DAYS);
+			tp.awaitTermination(10, TimeUnit.DAYS);
+			DataHolder.resetCountDownLatch();
 			log.info("thread pool shutdown!");
 			if (conn != null) {
 				conn.close();

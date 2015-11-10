@@ -20,6 +20,9 @@ src\_tables=aaa,bbb,ccc
 
 \#the number of connections it is using for SELECT  
 \#src\_threads=10  
+######Shuffle  
+cache\_rows=10000  
+cache\_exceed\_sleep\_ms=10000
 
 ######Target Side:  
 tgz\_driver=org.trafodion.jdbc.t4.T4Driver  
