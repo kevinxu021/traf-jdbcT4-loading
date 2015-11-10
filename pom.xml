@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.esgyn</groupId>
 	<artifactId>jdb</artifactId>
-	<version>0.0.2</version>
+	<version>0.0.3</version>
 	<dependencies>
 		<dependency>
 			<groupId>com.zaxxer</groupId>
@@ -21,6 +21,11 @@
 			<artifactId>traf-jdbcT4</artifactId>
 			<version>3.5.0</version>
 		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-simple</artifactId>
+			<version>1.7.12</version>
+		</dependency>
 	</dependencies>
 	<repositories>
 		<repository>
@@ -34,6 +39,29 @@
 	</repositories>
 	<build>
 		<plugins>
+			<plugin>
+				<artifactId>maven-antrun-plugin</artifactId>
+				<configuration>
+					<executions>
+						<execution>
+							<phase>compile</phase>
+							<goals>
+								<goal>run</goal>
+							</goals>
+							<configuration>
+								<tasks>
+									<echo message="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" />
+									<copy file="${project.basedir}/src/main/scripts/temp.startup.bat"
+										tofile="${project.basedir}/src/main/scripts/startup.bat" />
+									<copy file="${project.basedir}/src/main/scripts/temp.startup.sh"
+										tofile="${project.basedir}/src/main/scripts/startup.sh" />
+									<replace file="startup.*" token="@@VERSION@@" value="${project.version}" />
+								</tasks>
+							</configuration>
+						</execution>
+					</executions>
+				</configuration>
+			</plugin>
 			<!-- The configuration of maven-jar-plugin -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>

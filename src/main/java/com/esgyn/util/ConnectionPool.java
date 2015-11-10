@@ -27,7 +27,7 @@ public class ConnectionPool implements Serializable {
 			}
 
 			HikariConfig config = new HikariConfig();
-			config.setMaximumPoolSize(300);
+			config.setMaximumPoolSize(Integer.parseInt(options.getProperty("src_threads", "10")));
 			config.setIdleTimeout(60000);
 			config.setDriverClassName(options.getProperty("src_driver", "org.trafodion.jdbc.t4.T4Driver"));
 			config.setJdbcUrl(options.getProperty("src_url"));
@@ -37,6 +37,8 @@ public class ConnectionPool implements Serializable {
 			config.addDataSourceProperty("prepStmtCacheSize", "250");
 			config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
 			config.setConnectionTimeout(30000);
+			config.setConnectionTestQuery("select 0 from dual");
+			config.setAutoCommit(true);
 			srcpool = new HikariDataSource(config);
 		}
 		return srcpool;
@@ -60,6 +62,7 @@ public class ConnectionPool implements Serializable {
 			config.addDataSourceProperty("prepStmtCacheSize", "250");
 			config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
 			config.setConnectionTimeout(30000);
+			config.setAutoCommit(true);
 			tgzpool = new HikariDataSource(config);
 		}
 		return tgzpool;

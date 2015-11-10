@@ -9,11 +9,14 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Random;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.esgyn.util.ConnectionPool;
 import com.zaxxer.hikari.HikariDataSource;
 
 public class ExecWork implements Runnable {
-
+	private Logger log = LoggerFactory.getLogger(ExecWork.class);
 	private HikariDataSource pool;
 	private List<List> rows;
 	private String sql;
@@ -29,14 +32,6 @@ public class ExecWork implements Runnable {
 		this.sql = sql;
 		this.conf = conf;
 		this.threads = Integer.parseInt(conf.getProperty("tgz_threads", "3"));
-		synchronized (ExecWork.class) {
-			if (conns == null) {
-				conns = new ArrayList<Connection>(this.threads);
-				for (int i = 0; i < this.threads; i++) {
-					conns.add(ConnectionPool.getConn(conf));
-				}
-			}
-		}
 
 	}
 
@@ -45,62 +40,57 @@ public class ExecWork implements Runnable {
 		Connection conn = null;
 		PreparedStatement ps = null;
 		int index = r.nextInt(100) % this.threads;
-		conn = conns.get(index);
-		synchronized (conn) {
-			int[] rs = null;
-			try {
-				// System.out.println(Thread.currentThread().getName() + "
-				// loading.....");
-				ps = conn.prepareStatement(sql);
-				for (List row : rows) {
-					for (int i = 0; i < row.size(); i++)
-						ps.setObject(i + 1, row.get(i));
-					ps.addBatch();
+		int[] rs = null;
+		try {
+			conn = pool.getConnection();
+			log.info("Get connection from pool: " + conn);
+			// System.out.println(Thread.currentThread().getName() + "
+			// loading.....");
+			ps = conn.prepareStatement(sql);
+			for (List row : rows) {
+				for (int i = 0; i < row.size(); i++)
+					ps.setObject(i + 1, row.get(i));
+				ps.addBatch();
+			}
+			rs = ps.executeBatch();
+		} catch (SQLException e) {
+			System.out.println(Thread.currentThread().getName() + " " + e.getMessage());
+			e.printStackTrace();
+		} finally {
+			// count(rows.size());
+			if (ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					log.warn(e.getMessage(), e);
 				}
-				rs = ps.executeBatch();
-			} catch (SQLException e) {
-				System.out.println(Thread.currentThread().getName() + " " + e.getMessage());
-				e.printStackTrace();
-			} finally {
-				count(rows.size());
-				if (ps != null) {
-					try {
-						ps.close();
-					} catch (SQLException e) {
-						e.printStackTrace();
-					}
+			}
+			if (conn != null) {
+				try {
+					log.info("return back to pool");
+					conn.close();
+				} catch (SQLException e) {
+					log.warn(e.getMessage(), e);
 				}
-				if (rs != null) {
-					// for (int i = 0; i < rs.length; i++) {
-					// if (rs[i] < 0) {
-					// System.out.println("[rs]");
-					// for (Object o : rows.get(i)) {
-					// System.out.print(o + ",");
-					// }
-					// System.out.println();
-					// }
-					// }
-					try {
-						if (ps != null && ps.getWarnings() != null) {
-							ps.getWarnings().printStackTrace();
-							Iterator<Throwable> it = ps.getWarnings().iterator();
-							while (it.hasNext()) {
-								it.next().printStackTrace();
+			}
+			if (rs != null) {
+				try {
+					StringBuilder sb = new StringBuilder();
+					for (int i = 0; i < rs.length; i++) {
+						if (rs[i] < -1) {
+							sb.setLength(0);
+							for (Object o : rows.get(i)) {
+								if (sb.length() > 0) {
+									sb.append(",");
+								}
+								sb.append(o);
 							}
+							log.warn("Effected rows: " + rs[i] + " | " + sb.toString());
 						}
-					} catch (SQLException e) {
-						System.out.println("Warning:" + e.getMessage());
 					}
+				} catch (Exception e) {
+					log.warn("Warning:" + e.getMessage());
 				}
-				// if (conn != null) {
-				// try {
-				// System.out.println(Thread.currentThread().getName() + " close
-				// connection");
-				// conn.close();
-				// } catch (SQLException e) {
-				// e.printStackTrace();
-				// }
-				// }
 			}
 		}
 	}
@@ -112,7 +102,7 @@ public class ExecWork implements Runnable {
 	public static void count(int size) {
 		synchronized (ExecWork.class) {
 			cnt += size;
-			System.out.println(cnt +" rows has been inserted!");
+			System.out.println(cnt + " rows has been inserted!");
 		}
 	}
 }
