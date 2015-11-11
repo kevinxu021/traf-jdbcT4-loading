@@ -104,9 +104,10 @@ public class SingleTable implements Callable {
 			}
 
 			List row = null;
+			int colcount = md.getColumnCount();
 			while (rs.next()) {
 				try {
-					row = new ArrayList();
+					row = new ArrayList(colcount);
 					for (int i = 0; i < md.getColumnCount(); i++) {
 						row.add(rs.getObject(i + 1));
 					}

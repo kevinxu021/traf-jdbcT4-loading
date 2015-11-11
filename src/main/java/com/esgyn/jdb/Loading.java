@@ -40,21 +40,33 @@ public class Loading {
 		for (int i = 0; i < srcs.length; i++) {
 			futures.add(tabs.submit(new SingleTable(srcs[i], tgzs[i], conf)));
 		}
+		long start = System.currentTimeMillis();
+		long ellapse = 0;
 		for (int i = 0; i < futures.size(); i++) {
 			try {
+				long single = System.currentTimeMillis();
 				Object rs = futures.get(i).get();
+				log.info(format(single));
 				if (!rs.equals(0))
 					log.info(srcs[i] + " -> " + tgzs[i] + " done with error! " + (i + 1) + "/" + futures.size());
 				else
 					log.info(srcs[i] + " -> " + tgzs[i] + " done! " + (i + 1) + "/" + futures.size());
 			} catch (Exception e) {
 				System.out.println("Error while loading table from " + srcs[i] + " to " + tgzs[i] + ".");
-				e.printStackTrace();
+				log.error(e.getMessage(), e);
 			}
 		}
+		log.info(format(start));
 
 		tabs.shutdown();
+	}
 
+	protected static String format(long startms) {
+		long ellapse = System.currentTimeMillis() - startms;
+		long secs = (ellapse / 1000) % 60;
+		long mins = (ellapse / 60000) % 60;
+		long hours = ellapse / 3600000;
+		return "Ellapse: " + hours + "h " + mins + "m " + secs + "s";
 	}
 
 }

@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.esgyn</groupId>
 	<artifactId>jdb</artifactId>
-	<version>0.9.0</version>
+	<version>0.9.1</version>
 	<dependencies>
 		<dependency>
 			<groupId>com.zaxxer</groupId>
@@ -41,26 +41,19 @@
 		<plugins>
 			<plugin>
 				<artifactId>maven-antrun-plugin</artifactId>
+				<version>1.8</version>
 				<configuration>
-					<executions>
-						<execution>
-							<phase>compile</phase>
-							<goals>
-								<goal>run</goal>
-							</goals>
-							<configuration>
-								<tasks>
-									<echo message="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" />
-									<copy file="${project.basedir}/src/main/scripts/temp.startup.bat"
-										tofile="${project.basedir}/src/main/scripts/startup.bat" />
-									<copy file="${project.basedir}/src/main/scripts/temp.startup.sh"
-										tofile="${project.basedir}/src/main/scripts/startup.sh" />
-									<replace file="startup.*" token="@@VERSION@@" value="${project.version}" />
-								</tasks>
-							</configuration>
-						</execution>
-					</executions>
+					<target>
+						<copy file="${project.basedir}/src/main/scripts/temp.startup.sh"
+							tofile="${project.basedir}/src/main/scripts/startup.sh"
+							overwrite="true" />
+						<replace dir="${project.basedir}/src/main/scripts" value="${project.version}">
+							<include name="startup.*" />
+							<replacetoken>@@VERSION@@</replacetoken>
+						</replace>
+					</target>
 				</configuration>
+
 			</plugin>
 			<!-- The configuration of maven-jar-plugin -->
 			<plugin>
@@ -78,7 +71,7 @@
 						<!-- Manifest specific configuration -->
 						<manifest>
 							<!-- if true add jars into manifest classpath -->
-							<addClasspath>true</addClasspath>
+							<addClasspath>false</addClasspath>
 							<!-- put jars into lib/ -->
 							<classpathPrefix>lib/</classpathPrefix>
 							<!-- 应用的main class -->

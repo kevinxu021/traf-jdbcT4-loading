@@ -19,7 +19,7 @@ public class ExecWork implements Runnable {
 	private Properties conf;
 	private int threads;
 	private int batchSize;
-	private int numOfRows;
+	private static long numOfRows = 0;
 	private static Random r = new Random();
 	private static List<Connection> conns = null;
 	private static long cnt = 0;
@@ -71,12 +71,14 @@ public class ExecWork implements Runnable {
 				if (n >= this.batchSize) {
 					ps.executeBatch();
 					n = 0;
+					total += n;
 				}
 			}
 
 			if (n > 0) {
 				ps.executeBatch();
 				n = 0;
+				total += n;
 			}
 
 		} catch (SQLException e) {
@@ -103,8 +105,8 @@ public class ExecWork implements Runnable {
 
 	private void count(int total) {
 		synchronized (ExecWork.class) {
-			this.numOfRows += total;
-			log.info(this.numOfRows + " rows has been inserted!");
+			numOfRows += total;
+			log.info(numOfRows + " rows has been inserted! ");
 		}
 	}
 
