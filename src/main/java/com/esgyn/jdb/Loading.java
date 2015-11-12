@@ -41,16 +41,15 @@ public class Loading {
 			futures.add(tabs.submit(new SingleTable(srcs[i], tgzs[i], conf)));
 		}
 		long start = System.currentTimeMillis();
-		long ellapse = 0;
 		for (int i = 0; i < futures.size(); i++) {
 			try {
 				long single = System.currentTimeMillis();
 				Object rs = futures.get(i).get();
 				log.info(format(single));
 				if (!rs.equals(0))
-					log.info(srcs[i] + " -> " + tgzs[i] + " done with error! " + (i + 1) + "/" + futures.size());
+					log.info(srcs[i] + " done with error! " + (i + 1) + "/" + futures.size());
 				else
-					log.info(srcs[i] + " -> " + tgzs[i] + " done! " + (i + 1) + "/" + futures.size());
+					log.info(srcs[i] + " done! " + (i + 1) + "/" + futures.size());
 			} catch (Exception e) {
 				System.out.println("Error while loading table from " + srcs[i] + " to " + tgzs[i] + ".");
 				log.error(e.getMessage(), e);
