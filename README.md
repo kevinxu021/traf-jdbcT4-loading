@@ -1,9 +1,38 @@
 # traf-jdbcT4-loading
 A common program for data loading from one database to another
+######Build steps. if you already have a JDB Jar, please ignore this step  
+mvn clean antrun:run package  
+\#The output Jar will locat in folder target/
+
 ######Steps to run
-mvn clean package  //package your project, the jar will be located in target  
+\# database -> json file  
 modify src/main/resources/config.properties as your own  
-java -DconfigFile=[absolute path]/config.properties jdb-xxx.jar com.esgyn.jdb.Loading  
+sh bin/startup.sh  
+\#the number of output json files equals to tgz\_threads
+
+\#json file -> Hive external table. Refs: [json-serde-1.3.6-jar-with-dependencies.jar](https://github.com/rcongiu/Hive-JSON-Serde)    
+```
+add jar /home/trafodion/kevin/json-serde-1.3.6-jar-with-dependencies.jar;  
+```
+```
+CREATE EXTERNAL TABLE json_test(id int, weight string, name string, bday string)
+COMMENT 'This is the staging page view table'
+row format serde 'org.openx.data.jsonserde.JsonSerDe'
+STORED AS TEXTFILE
+LOCATION '/traf_test/kevin';
+```   
+
+\#hive external table -> hive internal table  
+```
+add jar /home/trafodion/kevin/json-serde-1.3.6-jar-with-dependencies.jar;   
+create table json_test2 as select * from json_test;
+```   
+\#check on Trafodion  
+```
+select * from hive.hive.json_test2;
+```
+
+
 
 -----
 ####Properties
@@ -25,12 +54,7 @@ cache\_rows=10000
 cache\_exceed\_sleep\_ms=10000
 
 ######Target Side:  
-tgz\_driver=org.trafodion.jdbc.t4.T4Driver  
-tgz\_url=jdbc\:t4jdbc\://10.10.10.36\:23400/:    
-tgz\_user=traf123  
-tgz\_pwd=zzz  
-\#if tgz_tables not exist, it'll use src_tables    
-tgz\_tables=aaa,bbb,ccc  
+tgz\_file\_name=temp    
 
 \#the number of connections it is using for insertion
 tgz\_threads=3  

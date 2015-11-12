@@ -28,7 +28,6 @@ public class SingleTable implements Callable {
 	private ExecutorService tp;
 	private HikariDataSource pool;
 	private int batchSize;
-	private HikariDataSource tgzpool;
 	private Properties conf;
 	private Map<String, String> colMap = new HashMap<String, String>();
 	private int threads;
@@ -58,7 +57,6 @@ public class SingleTable implements Callable {
 		threads = Integer.parseInt(conf.getProperty("tgz_threads", "5"));
 		tp = Executors.newFixedThreadPool(threads);
 		pool = ConnectionPool.getSrcPool(conf);
-		tgzpool = ConnectionPool.getTgzPool(conf);
 		batchSize = Integer.parseInt(conf.getProperty("tgz_batch_size", "1000"));
 		cacheRows = Integer.parseInt(conf.getProperty("cache_rows", "100000"));
 		cacheSleep = Long.parseLong(conf.getProperty("cache_exceed_sleep_ms", "10000"));
@@ -100,7 +98,7 @@ public class SingleTable implements Callable {
 			// start up number of threads waiting for execute
 			DataHolder.setDone(false);
 			for (int i = 0; i < this.threads; i++) {
-				tp.execute(new ExecWork(conf, tgzpool, insertSql));
+				tp.execute(new ExecWork(conf));
 			}
 
 			List row = null;
@@ -139,7 +137,6 @@ public class SingleTable implements Callable {
 			if (conn != null) {
 				conn.close();
 			}
-			tgzpool.close();
 			pool.close();
 		}
 
