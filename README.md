@@ -56,8 +56,8 @@ cache\_exceed\_sleep\_ms=10000
 ######Target Side:  
 tgz\_file\_name=temp    
 
-\#the number of connections it is using for insertion
+\#the number of connections it is using for insertion  
 tgz\_threads=3  
 
-\#the number of rows for a insertion batch
+\#the number of rows for a insertion batch  
 tgz\_batch_size=1000  
