@@ -10,6 +10,7 @@ import java.util.Properties;
 import java.util.Random;
 
 import org.json.JSONArray;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +27,7 @@ public class ExecWork implements Runnable {
 	private static List<Connection> conns = null;
 	private static long cnt = 0;
 	private final String newline = System.getProperty("line.separator");
+	private NullString ns = new NullString();
 
 	public ExecWork(Properties conf) throws Exception {
 		this.conf = conf;
@@ -56,7 +58,7 @@ public class ExecWork implements Runnable {
 				row = DataHolder.pop();
 				if (row != null) {
 					for (int i = 0; i < row.size(); i++) {
-						a.put(i, row.get(i));
+						a.put(i, row.get(i) == null ? ns : row.get(i));
 					}
 					out.write((a.toString() + this.newline).getBytes());
 					n++;
