@@ -2,6 +2,7 @@ package com.esgyn.jdb;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.sql.Connection;
 import java.util.List;
 import java.util.Properties;
@@ -48,24 +49,22 @@ public class ExecWork implements Runnable {
 			log.info("Write data into: " + this.fileName);
 			List row = null;
 			int n = 0;
-			StringBuilder sb = new StringBuilder();
 			String tmp = null;
 			while (true) {
 				row = DataHolder.pop();
 				if (row != null) {
-					sb.setLength(0);
 					for (int i = 0; i < row.size(); i++) {
 						if (i > 0) {
-							sb.append((char) this.separator);
+							out.write(this.separator);
 						}
-						sb.append(row.get(i) == null ? "" : row.get(i));
 						tmp = row.get(i) + "";
+						out.write((row.get(i) == null ? "" : tmp).getBytes());
 						if (tmp.contains((char) this.separator + "")) {
 							log.error("NM! You have perticular character ACII(" + this.separator + ").");
 							System.exit(0);
 						}
 					}
-					out.write((sb.toString() + this.newline).getBytes());
+					out.write(this.newline.getBytes());
 					n++;
 				} else if (DataHolder.isDone()) {
 					break;
