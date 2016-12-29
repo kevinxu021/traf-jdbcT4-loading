@@ -1,8 +1,7 @@
 package org.trafodion.ci.loader;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.sql.BatchUpdateException;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.DriverManager;
@@ -10,10 +9,14 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
+import org.apache.commons.io.filefilter.DirectoryFileFilter;
+import org.apache.commons.io.filefilter.PrefixFileFilter;
 
 public class TrafFileExecutor implements Runnable {
 
@@ -29,10 +32,14 @@ public class TrafFileExecutor implements Runnable {
 	private String url;
 	private String sql;
 	private int batchSize;
+	private boolean saveErrRows;
+	private boolean stopOnError;
+	private File tmpRowFile;
 
 	public TrafFileExecutor(TrafLoader loader, File file, Properties config, TrafTargetTable targetTable) {
 		this.file = file;
 		this.errRowFile = new File(file.getAbsolutePath() + ".err");
+		this.tmpRowFile = new File(file.getAbsolutePath() + ".tmp");
 		this.config = config;
 		this.loader = loader;
 		this.withHead = Boolean.parseBoolean(config.getProperty("with_head", "false"));
@@ -54,6 +61,8 @@ public class TrafFileExecutor implements Runnable {
 			}
 		}
 		this.sql = "upsert using load into " + targetTableName + " values(" + tk + ")";
+		this.saveErrRows = Boolean.parseBoolean(config.getProperty("save_error_rows", "false"));
+		this.stopOnError = Boolean.parseBoolean(config.getProperty("stop_on_error", "true"));
 
 	}
 
@@ -77,11 +86,19 @@ public class TrafFileExecutor implements Runnable {
 						// deal with the head and create the table if not exists
 					}
 				}
-				if (this.errRowFile.exists())
+				// remove error file
+				if (this.errRowFile.exists()) {
 					FileUtils.forceDelete(this.errRowFile);
+				}
+				// remove temp files
+				Iterator<File> errlistIt = FileUtils.listFiles(this.file.getParentFile(),
+						new PrefixFileFilter(this.tmpRowFile.getName()), DirectoryFileFilter.DIRECTORY).iterator();
+				if (errlistIt.hasNext()) {
+					FileUtils.forceDelete(errlistIt.next());
+				}
 				String[] values = null;
 				int index = 1;
-				while (it.hasNext()) {
+				outter: while (it.hasNext()) {
 					line = it.next();
 					values = line.split(delimiter);
 					if (values.length < this.tableDesc.getColDesc().size()) {
@@ -94,20 +111,46 @@ public class TrafFileExecutor implements Runnable {
 							ps.setObject(index, getValue(values[i], this.tableDesc.getColDesc().get(i)));
 						} catch (Exception e) {
 							e.printStackTrace();
+							saveErrRows(line);
+							if (this.stopOnError)
+								break outter;
 							ps.setNull(index, (int) (this.tableDesc.getColDesc().get(i)[1]));
 						}
 					}
 					ps.addBatch();
 					++batchCnt;
 					if (batchCnt >= this.batchSize) {
-						ps.executeBatch();
+						try {
+							ps.executeBatch();
+						} catch (BatchUpdateException e) {
+							Iterator<Throwable> eit = e.iterator();
+							while (eit.hasNext()) {
+								eit.next().printStackTrace();
+							}
+							// saveErrRows(line);
+							System.out.println("Error row index:" + (rowcount + 1) + " - " + (rowcount + batchCnt));
+							if (this.stopOnError)
+								break outter;
+						}
 						rowcount += batchCnt;
 						batchCnt = 0;
 					}
 				}
 
 				if (batchCnt > 0) {
-					ps.executeBatch();
+					try {
+						ps.executeBatch();
+					} catch (BatchUpdateException e) {
+						Iterator<Throwable> eit = e.iterator();
+						while (eit.hasNext()) {
+							eit.next().printStackTrace();
+						}
+						saveErrRows(line);
+						System.out.println("Error row index:" + (rowcount + 1) + " - the last row");
+						if (this.stopOnError)
+							throw e;
+
+					}
 					rowcount += batchCnt;
 					batchCnt = 0;
 				}
@@ -139,6 +182,11 @@ public class TrafFileExecutor implements Runnable {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+
+	private void saveErrRows(String line) {
+		// TODO Auto-generated method stub
+
 	}
 
 	private Object getValue(String value, Object colDesc[]) throws Exception {

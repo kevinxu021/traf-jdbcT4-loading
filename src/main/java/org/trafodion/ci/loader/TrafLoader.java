@@ -73,7 +73,7 @@ public class TrafLoader extends Thread {
 		// got all files from specified folder
 		Collection<File> files = null;
 		if (type == null) {
-			files = FileUtils.listFiles(new File(source_path), null, DirectoryFileFilter.DIRECTORY);
+			files = FileUtils.listFiles(new File(source_path), null, true);
 		} else {
 			files = FileUtils.listFiles(new File(source_path), new SuffixFileFilter(type.split("\\|")),
 					DirectoryFileFilter.DIRECTORY);

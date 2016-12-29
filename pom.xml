@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.esgyn</groupId>
 	<artifactId>jdb</artifactId>
-	<version>tofile-0.9.6</version>
+	<version>tofile-0.9.7</version>
 	<dependencies>
 		<dependency>
 			<groupId>com.zaxxer</groupId>
@@ -110,6 +110,7 @@
 					<!-- Specifies the configuration file of the assembly plugin -->
 					<descriptors>
 						<descriptor>src/main/assembly/package.xml</descriptor>
+						<descriptor>src/main/assembly/forFileLoad.xml</descriptor>
 					</descriptors>
 				</configuration>
 				<executions>
