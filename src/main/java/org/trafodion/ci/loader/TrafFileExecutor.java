@@ -114,7 +114,7 @@ public class TrafFileExecutor implements Runnable {
 							saveErrRows(line);
 							if (this.stopOnError)
 								break outter;
-							ps.setNull(index, (int) (this.tableDesc.getColDesc().get(i)[1]));
+							ps.setNull(index, (Integer) (this.tableDesc.getColDesc().get(i)[1]));
 						}
 					}
 					ps.addBatch();
@@ -190,7 +190,7 @@ public class TrafFileExecutor implements Runnable {
 	}
 
 	private Object getValue(String value, Object colDesc[]) throws Exception {
-		int type = (int) colDesc[1];
+		int type = (Integer) colDesc[1];
 		switch (type) {
 		case Types.CHAR:
 		case Types.VARCHAR:

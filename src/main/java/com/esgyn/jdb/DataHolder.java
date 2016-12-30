@@ -5,7 +5,7 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.CountDownLatch;
 
 public class DataHolder {
-	private static final ConcurrentLinkedDeque<List> data = new ConcurrentLinkedDeque<>();
+	private static final ConcurrentLinkedDeque<List> data = new ConcurrentLinkedDeque<List>();
 	private static CountDownLatch cdl = new CountDownLatch(1);
 	private static boolean done = false;
 
